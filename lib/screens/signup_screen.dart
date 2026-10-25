@@ -250,7 +250,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 20),
 
                     const Text(
                       'Your semester, with a little more focus.',
@@ -482,7 +482,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 10),
 
                     // Link existing users to the login screen.
                     Center(
