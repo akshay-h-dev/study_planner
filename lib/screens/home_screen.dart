@@ -1,5 +1,7 @@
 
 import 'package:flutter/material.dart';
+import 'task_detail_screen.dart';
+import '../models/study_task.dart';
 
 // Study Planner home-screen theme colors.
 const Color studyPurple = Color(0xFF4827E8);
@@ -7,25 +9,6 @@ const Color studyInk = Color(0xFF20264D);
 const Color studyMuted = Color(0xFF7B83A8);
 const Color studyBackground = Color(0xFFF7F8FC);
 const Color studyBorder = Color(0xFFE1E5F4);
-
-// Task model: holds the information displayed in each task card.
-class StudyTask {
-  StudyTask({
-    required this.title,
-    required this.subject,
-    required this.due,
-    required this.progress,
-    this.isDone = false,
-    this.isSaved = false,
-  });
-
-  final String title;
-  final String subject;
-  final String due;
-  double progress;
-  bool isDone;
-  bool isSaved;
-}
 
 // Main home screen for the Study Planner application.
 class HomeScreen extends StatefulWidget {
@@ -57,9 +40,33 @@ class _HomeScreenState extends State<HomeScreen> {
     StudyTask(
       title: 'Review derivatives & integrals',
       subject: 'Mathematics · Chapter 04',
-      due: 'Today, 4:00 PM',
+      due: 'Oct 19, 2026 · 4:00 PM',
       progress: 0.60,
       isSaved: true,
+      description:
+          'Review the key differentiation rules and practice definite integrals. '
+          'Focus on the questions marked in the lecture notes.',
+      priority: 'High priority',
+      checklistItems: [
+        ChecklistItem(
+          title: 'Review differentiation rules',
+          isDone: true,
+        ),
+        ChecklistItem(
+          title: 'Summarize lecture notes',
+          isDone: true,
+        ),
+        ChecklistItem(
+          title: 'Practice the chain rule',
+          isDone: true,
+        ),
+        ChecklistItem(
+          title: 'Solve 10 integral problems',
+        ),
+        ChecklistItem(
+          title: 'Check answers & flag questions',
+        ),
+      ],
     ),
     StudyTask(
       title: 'Read & annotate chapter 6',
@@ -105,84 +112,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Opens a form for adding a new study task.
+  // Opens the simple add-task form. Extra detail fields use model defaults.
   Future<void> _addTask() async {
-    final titleController = TextEditingController();
-    final subjectController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    final result = await showDialog<bool>(
+    final StudyTask? newTask = await showDialog<StudyTask>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Add a study task'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: titleController,
-                autofocus: true,
-                decoration: const InputDecoration(
-                  labelText: 'Task title',
-                  hintText: 'e.g. Review lecture notes',
-                ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty
-                        ? 'Enter a task title'
-                        : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: subjectController,
-                decoration: const InputDecoration(
-                  labelText: 'Subject',
-                  hintText: 'e.g. Mathematics',
-                ),
-                validator: (value) =>
-                    value == null || value.trim().isEmpty
-                        ? 'Enter a subject'
-                        : null,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(dialogContext, true);
-              }
-            },
-            child: const Text('Add task'),
-          ),
-        ],
-      ),
+      builder: (_) => const _AddStudyTaskDialog(),
     );
 
-    if (!mounted) return;
+    if (!mounted || newTask == null) return;
 
-    if (result == true) {
-      setState(() {
-        _tasks.insert(
-          0,
-          StudyTask(
-            title: titleController.text.trim(),
-            subject: subjectController.text.trim(),
-            due: 'Today',
-            progress: 0,
-          ),
-        );
-        _filter = 'All tasks';
-      });
-    }
-
-    titleController.dispose();
-    subjectController.dispose();
+    setState(() {
+      _tasks.insert(0, newTask);
+      _filter = 'All tasks';
+    });
   }
 
   // Shows the selected task's full information and completion action.
@@ -191,9 +133,16 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute<void>(
         builder: (_) => TaskDetailScreen(
-          task: task,
-          onChanged: () => setState(() {}),
-        ),
+        task: task,
+        onChanged: () {
+          if (mounted) setState(() {});
+        },
+        onDelete: () {
+          setState(() {
+            _tasks.remove(task);
+          });
+        },
+      ),
       ),
     );
     if (mounted) setState(() {});
@@ -796,109 +745,93 @@ class _EmptyTasks extends StatelessWidget {
   }
 }
 
-// A working local detail screen; later, this can be replaced with the
-// capstone's existing DetailScreen if its constructor supports this task.
-class TaskDetailScreen extends StatelessWidget {
-  const TaskDetailScreen({
-    super.key,
-    required this.task,
-    required this.onChanged,
-  });
+// Dialog for creating a task with only a title and subject.
+// The detail screen can fill in optional information later.
+class _AddStudyTaskDialog extends StatefulWidget {
+  const _AddStudyTaskDialog();
 
-  final StudyTask task;
-  final VoidCallback onChanged;
+  @override
+  State<_AddStudyTaskDialog> createState() => _AddStudyTaskDialogState();
+}
+
+class _AddStudyTaskDialogState extends State<_AddStudyTaskDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _subjectController = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _subjectController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+
+    // New tasks receive safe defaults for fields not requested in this form.
+    final task = StudyTask(
+      title: _titleController.text.trim(),
+      subject: _subjectController.text.trim(),
+      due: 'Today',
+      progress: 0,
+      isDone: false,
+      isSaved: false,
+      description: '',
+      priority: 'Medium priority',
+      checklistItems: [],
+    );
+
+    // Return the new task to _HomeScreenState._addTask().
+    Navigator.of(context).pop(task);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: studyBackground,
-      appBar: AppBar(
-        title: const Text('Task details'),
-        backgroundColor: Colors.white,
-        foregroundColor: studyInk,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: studyBorder),
+    return AlertDialog(
+      title: const Text('Add a study task'),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _titleController,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Task title',
+                hintText: 'e.g. Review lecture notes',
+              ),
+              validator: (value) =>
+                  value == null || value.trim().isEmpty
+                      ? 'Enter a task title'
+                      : null,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.menu_book_rounded,
-                  color: studyPurple,
-                  size: 35,
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  task.subject,
-                  style: const TextStyle(
-                    color: studyPurple,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  task.title,
-                  style: const TextStyle(
-                    color: studyInk,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.calendar_today_outlined),
-                  title: const Text('Due date'),
-                  subtitle: Text(task.due),
-                ),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.trending_up),
-                  title: const Text('Progress'),
-                  subtitle: Text(
-                    '${(task.progress * 100).round()}% complete',
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      task.isDone = !task.isDone;
-                      task.progress = task.isDone ? 1 : 0;
-                      onChanged();
-                      Navigator.pop(context);
-                    },
-                    icon: Icon(
-                      task.isDone
-                          ? Icons.undo
-                          : Icons.check_circle_outline,
-                    ),
-                    label: Text(
-                      task.isDone
-                          ? 'Mark as not done'
-                          : 'Mark as completed',
-                    ),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: studyPurple,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(15),
-                    ),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _subjectController,
+              decoration: const InputDecoration(
+                labelText: 'Subject',
+                hintText: 'e.g. Mathematics',
+              ),
+              validator: (value) =>
+                  value == null || value.trim().isEmpty
+                      ? 'Enter a subject'
+                      : null,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('Add task'),
+        ),
+      ],
     );
   }
 }
