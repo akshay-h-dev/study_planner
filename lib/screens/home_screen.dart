@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'task_detail_screen.dart';
 import '../models/study_task.dart';
+import '../services/local_storage_service.dart';
 
 // Study Planner home-screen theme colors.
 const Color studyPurple = Color(0xFF4827E8);
@@ -34,6 +35,54 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _filter = 'All tasks';
   int _navigationIndex = 0;
+  bool _isLoadingTasks = true;
+  bool _storageError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  /// Restores saved tasks. On first launch, saves the existing demo tasks.
+  Future<void> _loadTasks() async {
+    try {
+      final savedTasks = await LocalStorageService.instance.loadTasks();
+      if (!mounted) return;
+      setState(() {
+        if (savedTasks != null) {
+          _tasks
+            ..clear()
+            ..addAll(savedTasks);
+        }
+        _isLoadingTasks = false;
+      });
+      // Seed storage once so the existing demonstration tasks are retained
+      // on first launch. A saved empty list remains empty on later launches.
+      if (savedTasks == null) await _persistTasks(showError: false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingTasks = false;
+        _storageError = true;
+      });
+      _showMessage('Could not load saved tasks: $error');
+    }
+  }
+
+  /// Saves the whole current list after each task mutation.
+  Future<void> _persistTasks({bool showError = true}) async {
+    try {
+      await LocalStorageService.instance.saveTasks(_tasks);
+      if (mounted && _storageError) {
+        setState(() => _storageError = false);
+      }
+    } catch (error) {
+      if (showError && mounted) {
+        _showMessage('Could not save tasks locally: $error');
+      }
+    }
+  }
 
   // Initial demonstration tasks. Replace these with persisted user tasks later.
   final List<StudyTask> _tasks = [
@@ -125,6 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _tasks.insert(0, newTask);
       _filter = 'All tasks';
     });
+    await _persistTasks();
   }
 
   // Shows the selected task's full information and completion action.
@@ -136,11 +186,13 @@ class _HomeScreenState extends State<HomeScreen> {
         task: task,
         onChanged: () {
           if (mounted) setState(() {});
+          _persistTasks();
         },
         onDelete: () {
           setState(() {
             _tasks.remove(task);
           });
+          _persistTasks();
         },
       ),
       ),
@@ -193,6 +245,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final contentWidth = width > 800 ? 760.0 : double.infinity;
+
+    if (_isLoadingTasks) {
+      return const Scaffold(
+        backgroundColor: studyBackground,
+        body: Center(child: CircularProgressIndicator(color: studyPurple)),
+      );
+    }
 
     return Scaffold(
       backgroundColor: studyBackground,
@@ -309,6 +368,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           ],
                         ),
                       ),
+                      if (_storageError) ...[
+                        const Text(
+                          'Local storage could not be accessed. Changes may not persist.',
+                          style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                       const SizedBox(height: 18),
                       Text(
                         _dateLabel,
@@ -403,13 +469,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: _TaskCard(
                               task: task,
                               onTap: () => _openTask(task),
-                              onSavedChanged: () => setState(
-                                () => task.isSaved = !task.isSaved,
-                              ),
-                              onCompletedChanged: () => setState(() {
-                                task.isDone = !task.isDone;
-                                task.progress = task.isDone ? 1 : 0;
-                              }),
+                              onSavedChanged: () {
+                                setState(() => task.isSaved = !task.isSaved);
+                                _persistTasks();
+                              },
+                              onCompletedChanged: () {
+                                setState(() {
+                                  task.isDone = !task.isDone;
+                                  task.progress = task.isDone ? 1 : 0;
+                                });
+                                _persistTasks();
+                              },
                             ),
                           ),
                         ),
