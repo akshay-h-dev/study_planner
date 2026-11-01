@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'settings_screen.dart';
 
 const Color _purple = Color(0xFF4827E8);
 const Color _ink = Color(0xFF20264D);
@@ -274,9 +275,13 @@ class _SettingsMenuScreenState extends State<SettingsMenuScreen> {
                         icon: Icons.settings_outlined,
                         title: 'Settings',
                         subtitle: 'Account and app preferences',
-                        onTap: () => _showMessage(
-                          'Settings screen is not connected yet.',
-                        ),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => SettingsScreen(userName: displayName),
+                            ),
+                          );
+                        },
                       ),
                       const Divider(height: 1, indent: 72, color: _border),
                       _menuItem(
