@@ -1,8 +1,9 @@
-
 import 'package:flutter/material.dart';
+
 import 'task_detail_screen.dart';
 import '../models/study_task.dart';
 import '../services/local_storage_service.dart';
+import 'country_api_screen.dart';
 
 // Study Planner home-screen theme colors.
 const Color studyPurple = Color(0xFF4827E8);
@@ -97,24 +98,11 @@ class _HomeScreenState extends State<HomeScreen> {
           'Focus on the questions marked in the lecture notes.',
       priority: 'High priority',
       checklistItems: [
-        ChecklistItem(
-          title: 'Review differentiation rules',
-          isDone: true,
-        ),
-        ChecklistItem(
-          title: 'Summarize lecture notes',
-          isDone: true,
-        ),
-        ChecklistItem(
-          title: 'Practice the chain rule',
-          isDone: true,
-        ),
-        ChecklistItem(
-          title: 'Solve 10 integral problems',
-        ),
-        ChecklistItem(
-          title: 'Check answers & flag questions',
-        ),
+        ChecklistItem(title: 'Review differentiation rules', isDone: true),
+        ChecklistItem(title: 'Summarize lecture notes', isDone: true),
+        ChecklistItem(title: 'Practice the chain rule', isDone: true),
+        ChecklistItem(title: 'Solve 10 integral problems'),
+        ChecklistItem(title: 'Check answers & flag questions'),
       ],
     ),
     StudyTask(
@@ -151,9 +139,9 @@ class _HomeScreenState extends State<HomeScreen> {
   List<StudyTask> get _visibleTasks {
     switch (_filter) {
       case 'Today':
-        return _tasks.where(
-          (task) => !task.isDone && task.due.startsWith('Today'),
-        ).toList();
+        return _tasks
+            .where((task) => !task.isDone && task.due.startsWith('Today'))
+            .toList();
       case 'This week':
         return _tasks.where((task) => !task.isDone).toList();
       default:
@@ -183,24 +171,23 @@ class _HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute<void>(
         builder: (_) => TaskDetailScreen(
-        task: task,
-        onChanged: () {
-          if (mounted) setState(() {});
-          _persistTasks();
-        },
-        onDelete: () {
-          setState(() {
-            _tasks.remove(task);
-          });
-          _persistTasks();
-        },
-      ),
+          task: task,
+          onChanged: () {
+            if (mounted) setState(() {});
+            _persistTasks();
+          },
+          onDelete: () {
+            setState(() {
+              _tasks.remove(task);
+            });
+            _persistTasks();
+          },
+        ),
       ),
     );
     if (mounted) setState(() {});
   }
 
-  
   void _selectNavigation(int index) {
     setState(() => _navigationIndex = index);
 
@@ -234,11 +221,9 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -305,6 +290,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   widget.onOpenSettings?.call();
                 },
               ),
+              // Navigates to the external API integration feature.
+              ListTile(
+                leading: const Icon(Icons.public),
+                title: const Text('Explore Countries'),
+                subtitle: const Text('Learn about countries around the world'),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CountryApiScreen(),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -356,10 +355,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             IconButton(
                               tooltip: 'Settings',
-                              onPressed: widget.onOpenSettings ??
+                              onPressed:
+                                  widget.onOpenSettings ??
                                   () => _showMessage(
-                                        'Connect your Settings screen here.',
-                                      ),
+                                    'Connect your Settings screen here.',
+                                  ),
                               icon: const Icon(
                                 Icons.settings_outlined,
                                 color: studyInk,
@@ -371,7 +371,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (_storageError) ...[
                         const Text(
                           'Local storage could not be accessed. Changes may not persist.',
-                          style: TextStyle(color: Colors.redAccent, fontSize: 12),
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 12,
+                          ),
                         ),
                         const SizedBox(height: 8),
                       ],
@@ -399,10 +402,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'You have ${_tasks.where((t) => !t.isDone).length} '
                         'study tasks coming up.',
-                        style: const TextStyle(
-                          color: studyMuted,
-                          fontSize: 14,
-                        ),
+                        style: const TextStyle(color: studyMuted, fontSize: 14),
                       ),
                       const SizedBox(height: 22),
 
@@ -450,8 +450,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               (filter) => ChoiceChip(
                                 label: Text(filter),
                                 selected: _filter == filter,
-                                selectedColor:
-                                    const Color(0xFFEAE7FF),
+                                selectedColor: const Color(0xFFEAE7FF),
                                 onSelected: (_) =>
                                     setState(() => _filter = filter),
                               ),
@@ -493,17 +492,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         label: const Text('View completed progress'),
                       ),
                       if (_filter == 'All tasks')
-                        ..._tasks.where((task) => task.isDone).map(
-                          (task) => ListTile(
-                            leading: const Icon(
-                              Icons.check_circle,
-                              color: studyPurple,
+                        ..._tasks
+                            .where((task) => task.isDone)
+                            .map(
+                              (task) => ListTile(
+                                leading: const Icon(
+                                  Icons.check_circle,
+                                  color: studyPurple,
+                                ),
+                                title: Text(task.title),
+                                subtitle: Text(task.subject),
+                                trailing: const Text('Done'),
+                              ),
                             ),
-                            title: Text(task.title),
-                            subtitle: Text(task.subject),
-                            trailing: const Text('Done'),
-                          ),
-                        ),
                     ]),
                   ),
                 ),
@@ -556,13 +557,27 @@ class _HomeScreenState extends State<HomeScreen> {
   // Formats the current date without needing an extra package.
   String get _dateLabel {
     const weekdays = [
-      'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
-      'FRIDAY', 'SATURDAY', 'SUNDAY',
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+      'SUNDAY',
     ];
     const months = [
-      'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL',
-      'MAY', 'JUNE', 'JULY', 'AUGUST',
-      'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
+      'JANUARY',
+      'FEBRUARY',
+      'MARCH',
+      'APRIL',
+      'MAY',
+      'JUNE',
+      'JULY',
+      'AUGUST',
+      'SEPTEMBER',
+      'OCTOBER',
+      'NOVEMBER',
+      'DECEMBER',
     ];
     final now = DateTime.now();
     return '${weekdays[now.weekday - 1]}, '
@@ -572,10 +587,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 // Dashboard card showing how much of the task list is completed.
 class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({
-    required this.completed,
-    required this.total,
-  });
+  const _ProgressCard({required this.completed, required this.total});
 
   final int completed;
   final int total;
@@ -621,10 +633,7 @@ class _ProgressCard extends StatelessWidget {
               ),
               const CircleAvatar(
                 backgroundColor: Color(0xFF6650ED),
-                child: Icon(
-                  Icons.school_outlined,
-                  color: Colors.white,
-                ),
+                child: Icon(Icons.school_outlined, color: Colors.white),
               ),
             ],
           ),
@@ -635,8 +644,7 @@ class _ProgressCard extends StatelessWidget {
               value: progress,
               minHeight: 6,
               backgroundColor: const Color(0xFF8876F1),
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(Colors.white),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           ),
           const SizedBox(height: 12),
@@ -698,9 +706,7 @@ class _TaskCard extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                     onPressed: onSavedChanged,
                     icon: Icon(
-                      task.isSaved
-                          ? Icons.bookmark
-                          : Icons.bookmark_border,
+                      task.isSaved ? Icons.bookmark : Icons.bookmark_border,
                       color: studyPurple,
                     ),
                   ),
@@ -726,10 +732,7 @@ class _TaskCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       task.due,
-                      style: const TextStyle(
-                        color: studyMuted,
-                        fontSize: 11,
-                      ),
+                      style: const TextStyle(color: studyMuted, fontSize: 11),
                     ),
                   ),
                   Text(
@@ -754,8 +757,7 @@ class _TaskCard extends StatelessWidget {
                   value: task.progress,
                   minHeight: 4,
                   backgroundColor: const Color(0xFFEAEFFD),
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(studyPurple),
+                  valueColor: const AlwaysStoppedAnimation<Color>(studyPurple),
                 ),
               ),
             ],
@@ -784,11 +786,7 @@ class _EmptyTasks extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.menu_book_outlined,
-            size: 38,
-            color: studyPurple,
-          ),
+          const Icon(Icons.menu_book_outlined, size: 38, color: studyPurple),
           const SizedBox(height: 12),
           const Text(
             'No tasks here yet',
@@ -872,10 +870,9 @@ class _AddStudyTaskDialogState extends State<_AddStudyTaskDialog> {
                 labelText: 'Task title',
                 hintText: 'e.g. Review lecture notes',
               ),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty
-                      ? 'Enter a task title'
-                      : null,
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? 'Enter a task title'
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -884,10 +881,9 @@ class _AddStudyTaskDialogState extends State<_AddStudyTaskDialog> {
                 labelText: 'Subject',
                 hintText: 'e.g. Mathematics',
               ),
-              validator: (value) =>
-                  value == null || value.trim().isEmpty
-                      ? 'Enter a subject'
-                      : null,
+              validator: (value) => value == null || value.trim().isEmpty
+                  ? 'Enter a subject'
+                  : null,
             ),
           ],
         ),
@@ -897,10 +893,7 @@ class _AddStudyTaskDialogState extends State<_AddStudyTaskDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('Add task'),
-        ),
+        FilledButton(onPressed: _submit, child: const Text('Add task')),
       ],
     );
   }
