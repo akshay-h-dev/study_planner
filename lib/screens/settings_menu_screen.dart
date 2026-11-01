@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import 'settings_screen.dart';
+import 'notifications_screen.dart';
 
 const Color _purple = Color(0xFF4827E8);
 const Color _ink = Color(0xFF20264D);
@@ -278,7 +280,8 @@ class _SettingsMenuScreenState extends State<SettingsMenuScreen> {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
-                              builder: (_) => SettingsScreen(userName: displayName),
+                              builder: (_) =>
+                                  SettingsScreen(userName: displayName),
                             ),
                           );
                         },
@@ -293,9 +296,15 @@ class _SettingsMenuScreenState extends State<SettingsMenuScreen> {
                           activeColor: _purple,
                           onChanged: _setNotifications,
                         ),
-                        onTap: () => _setNotifications(!_notificationsEnabled),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const NotificationsScreen(),
+                            ),
+                          );
+                        },
                       ),
-            
+
                       const Divider(height: 1, indent: 72, color: _border),
                       _menuItem(
                         icon: Icons.public_rounded,
