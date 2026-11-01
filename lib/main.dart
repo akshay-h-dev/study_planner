@@ -1,9 +1,9 @@
-
 import 'package:flutter/material.dart';
 
 import 'screens/signup_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/settings_menu_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,28 +29,42 @@ class StudyPlannerApp extends StatelessWidget {
         '/signup': (context) => const SignupScreen(),
         '/login': (context) => const LoginScreen(),
 
-        // Home is opened by LoginScreen after successful authentication.
+        // LoginScreen passes the authenticated user to this route.
         '/home': (context) {
           final arguments = ModalRoute.of(context)?.settings.arguments;
-
-          // Keep the home screen compatible with the user object
-          // already passed by LoginScreen.
           String userName = 'Student';
 
           if (arguments != null) {
             try {
               final dynamic user = arguments;
               final dynamic name = user.name;
-
               if (name is String && name.trim().isNotEmpty) {
                 userName = name.trim();
               }
             } catch (_) {
-              // If the user model has no .name property, use the fallback.
+              // Keep the fallback if the supplied user has no name property.
             }
           }
 
-          return HomeScreen(userName: userName);
+          return HomeScreen(
+            userName: userName,
+            onOpenSettings: () {
+              Navigator.of(context).pushNamed(
+                '/menu',
+                arguments: userName,
+              );
+            },
+          );
+        },
+
+        // Settings menu is opened from the Home drawer or Settings icon.
+        '/menu': (context) {
+          final arguments = ModalRoute.of(context)?.settings.arguments;
+          final userName = arguments is String && arguments.trim().isNotEmpty
+              ? arguments.trim()
+              : 'Student';
+
+          return SettingsMenuScreen(userName: userName);
         },
       },
     );
